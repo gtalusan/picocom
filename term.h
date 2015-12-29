@@ -67,6 +67,7 @@
  * F term_baud_up - return next higher baudrate
  * F term_baud_down - return next lower baudrate
  * F term_baud_ok - check if baudrate is valid
+ * F term_baud_custom - check if baudrate is custom
  * F term_strerror - return a string describing current error condition
  * F term_perror - print a string describing the current error condition
  * G term_errno - current error condition of the library
@@ -671,6 +672,12 @@ int term_baud_down (int baud);
  * Returns non-zero if "baud" is a valid baudrate, zero otherwise.
  */
 int term_baud_ok(int baud);
+
+/* F term_baud_custom
+ *
+ * Returns non-zero if "baud" is a custom baudrate, zero otherwise.
+ */
+int term_baud_custom(int baud);
 
 /***************************************************************************/
 

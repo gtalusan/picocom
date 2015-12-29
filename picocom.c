@@ -1249,7 +1249,7 @@ show_usage(char *name)
 	printf("  LINENOISE is enabled\n");
 	printf("  HISTFILE is: %s\n", HISTFILE);
 #endif
-#ifdef USE_CUSTOM_BAUD
+#if defined(USE_CUSTOM_BAUD) || defined(__APPLE__)
 	printf("  USE_CUSTOM_BAUD is enabled\n");
 #endif
 	
@@ -1554,8 +1554,8 @@ main(int argc, char *argv[])
 		fatal("failed to config device %s: %s", 
 			  opts.port, term_strerror(term_errno, errno));
 
-	set_tty_write_sz(term_get_baudrate(tty_fd, NULL));
-	
+	set_tty_write_sz(opts.baud);
+
 	r = term_add(STI);
 	if ( r < 0 )
 		fatal("failed to add I/O device: %s", 
@@ -1565,6 +1565,11 @@ main(int argc, char *argv[])
 	if ( r < 0 )
 		fatal("failed to set I/O device to raw mode: %s",
 			  term_strerror(term_errno, errno));
+
+#if defined(USE_CUSTOM_BAUD) && defined(__APPLE__)
+	if (term_baud_custom(opts.baud))
+		term_set_baudrate(tty_fd, opts.baud);
+#endif
 
 #ifdef LINENOISE
 	init_history();

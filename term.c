@@ -56,9 +56,12 @@
 #include <sys/ioctl.h>
 #endif
 
-#ifdef USE_CUSTOM_BAUD
+#if defined(USE_CUSTOM_BAUD) && !defined(__APPLE__)
 /* only works for linux, recent kernels */
 #include "termios2.h"
+#elif defined(USE_CUSTOM_BAUD) && defined(__APPLE__)
+#include <IOKit/serial/ioss.h>
+#include <sys/ioctl.h>
 #endif
 
 #include "term.h"
@@ -298,6 +301,12 @@ term_baud_ok(int baud)
 #else
 	return (baud >= 0);
 #endif
+}
+
+int
+term_baud_custom(int baud)
+{
+	return (Bcode(baud) == BNONE) ? 1 : 0;
 }
 
 /**************************************************************************/
@@ -767,7 +776,16 @@ term_set_baudrate (int fd, int baudrate)
 			}
 			cfsetispeed(&tio, B0);
 		} else {
-#ifdef USE_CUSTOM_BAUD
+#if defined(USE_CUSTOM_BAUD)
+#if defined(__APPLE__)
+			speed_t speed = baudrate;
+			r = ioctl(fd, IOSSIOSPEED, &speed);
+			if ( r < 0 ) {
+				term_errno = TERM_ESETOSPEED;
+				rval = -1;
+				break;
+			}
+#else
 			r = cfsetospeed_custom(&tio, baudrate);
 			if ( r < 0 ) {
 				term_errno = TERM_ESETOSPEED;
@@ -775,6 +793,7 @@ term_set_baudrate (int fd, int baudrate)
 				break;
 			}
 			cfsetispeed(&tio, B0);
+#endif
 #else /* ! defined USE_CUSTOM_BAUD */
 			term_errno = TERM_EBAUD;
 			rval = -1;
@@ -806,7 +825,7 @@ term_get_baudrate (int fd, int *ispeed)
 		if ( ispeed ) {
 			code = cfgetispeed(&term.currtermios[i]);
 			*ispeed = Bspeed(code);
-#ifdef USE_CUSTOM_BAUD
+#if defined(USE_CUSTOM_BAUD) && !defined(__APPLE__)
 			if ( *ispeed < 0 ) {
 				*ispeed = cfgetispeed_custom(&term.currtermios[i]);
 			}
@@ -815,7 +834,7 @@ term_get_baudrate (int fd, int *ispeed)
 		code = cfgetospeed(&term.currtermios[i]);
 		ospeed = Bspeed(code);
 		if ( ospeed < 0 ) {
-#ifdef USE_CUSTOM_BAUD
+#if defined(USE_CUSTOM_BAUD) && !defined(__APPLE__)
 			ospeed = cfgetospeed_custom(&term.currtermios[i]);
 			if ( ospeed < 0 ) {
 				term_errno = TERM_EGETSPEED;
